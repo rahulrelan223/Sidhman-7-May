@@ -88,7 +88,7 @@ def find_similar_images():
         }
 
         # Render result.html template with response data
-        return render_template('result.html', data=response_data)
+        return render_template('result.html', similar_images=response_data)
 
     except Exception as e:
         # Error handling: Log any errors that occur
