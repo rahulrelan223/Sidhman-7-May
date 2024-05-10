@@ -20,8 +20,8 @@ def create_feature_extractor(input_shape=(224, 224, 3)):
 feature_extractor = create_feature_extractor()
 
 # Load the features and image names from the dataset
-dataset_path = r'\Test'
-loaded_data = np.load(r'\extracted_features.npz')
+dataset_path = r'Test'
+loaded_data = np.load(r'extracted_features.npz')
 dataset_features = loaded_data['features']
 dataset_image_names = loaded_data['image_names']
 
