@@ -22,7 +22,7 @@ feature_extractor = create_feature_extractor(input_shape)
 
 # Load the features and image names from the dataset
 dataset_path = r'C:\Users\rahul\Desktop\SIdhman-google\new\dataset\Test'
-loaded_data = np.load(r'C:\Users\rahul\Desktop\SIdhman-google\Similar-Images usinng Flask(7 may)\extracted_features.npz')
+loaded_data = np.load(r'extracted_features.npz')
 dataset_features = loaded_data['features']
 dataset_image_names = loaded_data['image_names']
 
