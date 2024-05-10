@@ -34,7 +34,7 @@ def index():
                 return "No file part"
         
             # Get uploaded image file
-            uploaded_file = request.files['file']
+            uploaded_files = request.files.getlist('files[]')
         
             # If the user does not select a file, the browser submits an empty file without a filename
             if uploaded_file.filename == '':
