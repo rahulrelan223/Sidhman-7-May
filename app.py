@@ -82,7 +82,7 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/similar_image/<filename>')
+@app.route('/api/similar_image')
 def display_similar_image(filename):
     try:
         return send_file(os.path.join(dataset_path, filename), mimetype='image/jpeg')
