@@ -26,6 +26,10 @@ loaded_data = np.load(r'extracted_features.npz')
 dataset_features = loaded_data['features']
 dataset_image_names = loaded_data['image_names']
 
+@app.route('/')
+def index():
+    return 'Hello-World'
+
 @app.route('/api/similar_images', methods=['POST'])
 def find_similar_images():
     try:
