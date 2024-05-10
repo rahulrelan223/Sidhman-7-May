@@ -6,9 +6,12 @@
     <title>Similar Image Result</title>
 </head>
 <body>
-    <h1>Similar Image</h1>
-    <p>Similar Image Name: {{ similar_image_name }}</p>
-    <p>Similar Image Path: {{ similar_image_path }}</p>
-    <img src="/display_similar_image?similar_image_name={{ similar_image_name }}" alt="Similar Image">
+    <h1>Similar Images</h1>
+    {% for index, similar_image in similar_images.items() %}
+    <h2>Similar Image {{ index + 1 }}</h2>
+    <p>Similar Image Name: {{ similar_image.similar_image_names }}</p>
+    <p>Similar Image Path: {{ similar_image.similar_image_paths }}</p>
+    <img src="{{ similar_image.similar_image_paths }}" alt="Similar Image">
+    {% endfor %}
 </body>
 </html>
