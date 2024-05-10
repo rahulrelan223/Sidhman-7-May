@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, send_from_directory
+from flask import Flask, request, jsonify
 import numpy as np
 import os
 import tensorflow as tf
@@ -6,6 +6,7 @@ from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import GlobalAveragePooling2D
 from scipy.spatial.distance import cosine
+import cv2
 
 app = Flask(__name__)
 
@@ -21,81 +22,74 @@ feature_extractor = create_feature_extractor(input_shape)
 
 # Load the features and image names from the dataset
 dataset_path = r'C:\Users\rahul\Desktop\SIdhman-google\new\dataset\Test'
-loaded_data = np.load(r'extracted_features.npz')
+loaded_data = np.load(r'C:\Users\rahul\Desktop\SIdhman-google\Similar-Images usinng Flask(7 may)\extracted_features.npz')
 dataset_features = loaded_data['features']
 dataset_image_names = loaded_data['image_names']
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        try:
-            # Check if the post request has the file part
-            if 'file' not in request.files:
-                return "No file part"
-        
-            # Get uploaded image file
-            uploaded_file = request.files['file']
-        
-            # If the user does not select a file, the browser submits an empty file without a filename
-            if uploaded_file.filename == '':
-                return "No selected file"
-        
+@app.route('/api/similar_images', methods=['POST'])
+def find_similar_images():
+    try:
+        # Check if the post request has the file part
+        if 'files[]' not in request.files:
+            return jsonify({'error': 'No file part'})
+
+        # Get uploaded image files
+        uploaded_files = request.files.getlist('files[]')
+
+        # If no files are selected
+        if len(uploaded_files) == 0:
+            return jsonify({'error': 'No files selected'})
+
+        # Process uploaded images in batch
+        batch_features = []
+        for uploaded_file in uploaded_files:
             # Save the uploaded file to a temporary location
             uploaded_file_path = 'uploaded_image.jpg'
             uploaded_file.save(uploaded_file_path)
-        
+
             # Load and preprocess the uploaded image
-            img = tf.keras.preprocessing.image.load_img(uploaded_file_path, target_size=(224, 224))
-            img_array = tf.keras.preprocessing.image.img_to_array(img)
-            img_array = tf.expand_dims(img_array, 0)  # Add batch dimension
-            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
-        
+            img = cv2.imread(uploaded_file_path)
+            img = cv2.resize(img, (224, 224))
+            img = img.astype(np.float32) / 255.0
+            img = np.expand_dims(img, axis=0)  # Add batch dimension
+
             # Extract features from the uploaded image
-            uploaded_image_features = feature_extractor.predict(img_array)
-        
+            uploaded_image_features = feature_extractor.predict(img)
+
             # Ensure uploaded_image_features is a 1-D array
             uploaded_image_features = np.squeeze(uploaded_image_features)
-        
-            # Ensure dataset_features is a 2-D array
-            dataset_features_squeezed = np.squeeze(dataset_features)
-        
-            # Find similar images by computing cosine similarity
-            similarities = [1 - cosine(uploaded_image_features, feat) for feat in dataset_features_squeezed]
-            max_similarity_index = np.argmax(similarities)
-            similar_image_name = dataset_image_names[max_similarity_index]
-            
-            # Pass the path of the similar image to the template
-            similar_image_path = os.path.join(dataset_path, similar_image_name)
-            
-            # Print the path of the similar image along with its name
-            print("Similar Image Name:", similar_image_name)
-            print("Similar Image Path:", similar_image_path)
-            
-        except Exception as e:
-            # Error handling: Log any errors that occur
-            print("An error occurred:", e)
-            return "An error occurred. Please try again later."
+            batch_features.append(uploaded_image_features)
 
-        # Pass similar image path and name to the template
-        return render_template('result.html', similar_image_name=similar_image_name, similar_image_path=similar_image_path)
-    
-    return render_template('index.html')
+            # Delete temporary file
+            os.remove(uploaded_file_path)
 
+        # Convert batch features to numpy array
+        batch_features = np.array(batch_features)
 
-@app.route('/similar_image/<filename>')
-def display_similar_image(filename):
-    try:
-        return send_file(os.path.join(dataset_path, filename), mimetype='image/jpeg')
-    except FileNotFoundError:
-        return "Similar image not found"
+        # Ensure dataset_features is a 2-D array
+        dataset_features_squeezed = np.squeeze(dataset_features)
 
-@app.route('/display_similar_image')
-def display_image():
-    try:
-        similar_image_name = request.args.get('similar_image_name')
-        return send_from_directory(dataset_path, similar_image_name)
-    except FileNotFoundError:
-        return "Similar image not found"
+        # Compute cosine similarity with batch features
+        similarities = 1 - cosine(batch_features, dataset_features_squeezed, axis=1)
+        max_similarity_indices = np.argmax(similarities, axis=1)
+        similar_image_names = [dataset_image_names[index] for index in max_similarity_indices]
+
+        # Pass the paths of the similar images
+        similar_image_paths = [os.path.join(dataset_path, name) for name in similar_image_names]
+
+        # Prepare response data
+        response_data = {
+            'similar_image_names': similar_image_names,
+            'similar_image_paths': similar_image_paths
+        }
+
+        # Return response as JSON
+        return jsonify(response_data)
+
+    except Exception as e:
+        # Error handling: Log any errors that occur
+        print("An error occurred:", e)
+        return jsonify({'error': 'An error occurred. Please try again later.'})
 
 if __name__ == '__main__':
     app.run(debug=True)
