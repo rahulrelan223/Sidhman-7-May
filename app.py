@@ -82,18 +82,64 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/api/similar_images')
+@app.route('/api/similar_images', methods=['POST'])
+def find_similar_images():
+    try:
+        # Check if the post request has the file part
+        if 'file' not in request.files:
+            return "No file part"
+        
+        # Get uploaded image file
+        uploaded_file = request.files['file']
+        
+        # If the user does not select a file, the browser submits an empty file without a filename
+        if uploaded_file.filename == '':
+            return "No selected file"
+        
+        # Save the uploaded file to a temporary location
+        uploaded_file_path = 'uploaded_image.jpg'
+        uploaded_file.save(uploaded_file_path)
+        
+        # Load and preprocess the uploaded image
+        img = tf.keras.preprocessing.image.load_img(uploaded_file_path, target_size=(224, 224))
+        img_array = tf.keras.preprocessing.image.img_to_array(img)
+        img_array = tf.expand_dims(img_array, 0)  # Add batch dimension
+        img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+        
+        # Extract features from the uploaded image
+        uploaded_image_features = feature_extractor.predict(img_array)
+        
+        # Ensure uploaded_image_features is a 1-D array
+        uploaded_image_features = np.squeeze(uploaded_image_features)
+        
+        # Ensure dataset_features is a 2-D array
+        dataset_features_squeezed = np.squeeze(dataset_features)
+        
+        # Find similar images by computing cosine similarity
+        similarities = [1 - cosine(uploaded_image_features, feat) for feat in dataset_features_squeezed]
+        max_similarity_index = np.argmax(similarities)
+        similar_image_name = dataset_image_names[max_similarity_index]
+        
+        # Pass the path of the similar image to the template
+        similar_image_path = os.path.join(dataset_path, similar_image_name)
+        
+        # Return the name and path of the similar image
+        response_data = {
+            'similar_image_name': similar_image_name,
+            'similar_image_path': similar_image_path
+        }
+        
+        return response_data
+    
+    except Exception as e:
+        # Error handling: Log any errors that occur
+        print("An error occurred:", e)
+        return "An error occurred. Please try again later."
+
+@app.route('/display_similar_image/<filename>')
 def display_similar_image(filename):
     try:
         return send_file(os.path.join(dataset_path, filename), mimetype='image/jpeg')
-    except FileNotFoundError:
-        return "Similar image not found"
-
-@app.route('/display_similar_image')
-def display_image():
-    try:
-        similar_image_name = request.args.get('similar_image_name')
-        return send_from_directory(dataset_path, similar_image_name)
     except FileNotFoundError:
         return "Similar image not found"
 
