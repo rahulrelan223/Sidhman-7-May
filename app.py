@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import numpy as np
 import os
 import tensorflow as tf
@@ -26,7 +26,7 @@ loaded_data = np.load(r'extracted_features.npz')
 dataset_features = loaded_data['features']
 dataset_image_names = loaded_data['image_names']
 
-app.route('/')
+@app.route('/')
 def index():
     return render_template('index.html')
 
@@ -87,8 +87,8 @@ def find_similar_images():
             'similar_image_paths': similar_image_paths
         }
 
-        # Return response as JSON
-        return jsonify(response_data)
+        # Render result.html template with response data
+        return render_template('result.html', data=response_data)
 
     except Exception as e:
         # Error handling: Log any errors that occur
