@@ -29,8 +29,8 @@ dataset_image_names = loaded_data['image_names']
 def index():
     if request.method == 'POST':
         try:
-            # Check if the post request has the file part
-            if 'file' not in request.files:
+            print(request.files)
+            if 'files' not in request.files:
                 return "No file part"
         
             # Get uploaded image file
