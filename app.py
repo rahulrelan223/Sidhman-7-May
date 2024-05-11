@@ -67,24 +67,22 @@ def index():
             # Pass the path of the similar image to the template
             similar_image_path = os.path.join(dataset_path, similar_image_name)
             
-            # Create similar images data
-            similar_images = {
-                'name': similar_image_name,
-                'path': similar_image_path
-            }
-            
             # Print the path of the similar image along with its name
+            print("Uploaded Image:", uploaded_file.filename)
             print("Similar Image Name:", similar_image_name)
             print("Similar Image Path:", similar_image_path)
             
-            return render_template('result.html', similar_images=similar_images)
+            # Redirect to the result page with the similar image data
+            return render_template('result.html', similar_image_name=similar_image_name, similar_image_path=similar_image_path)
             
         except Exception as e:
             # Error handling: Log any errors that occur
             print("An error occurred:", e)
             return "An error occurred. Please try again later."
 
+    # If it's a GET request or the form is not submitted, render the index.html template
     return render_template('index.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
