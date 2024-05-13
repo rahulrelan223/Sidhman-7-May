@@ -33,7 +33,7 @@ dataset_image_names = loaded_data['image_names']
 logging.info("Dataset loaded successfully.")
 logging.info("Number of images in dataset: %d", len(dataset_image_names))
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['POST', 'OPTIONS'])
 def upload_image():
     try:
         # Check if the request contains an image file
