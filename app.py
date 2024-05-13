@@ -1,6 +1,6 @@
+from flask import Flask, request, jsonify, render_template
 import numpy as np
 import os
-from flask import Flask, request, jsonify
 import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.models import Model
@@ -49,8 +49,10 @@ for class_name in class_names:
 dataset_features = np.array(features)
 dataset_image_names = np.array(image_names)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/upload_image', methods=['GET', 'POST'])
 def upload_image():
+    if request.method == 'GET':
+        return render_template('index.html')
     try:
         # Check if the request contains an image file
         if 'file' not in request.files:
@@ -91,7 +93,7 @@ def upload_image():
         similar_image_path = os.path.join(dataset_path, similar_image_name)
 
         # Return the similar image path in the response
-        return jsonify({'similar_image_path': similar_image_path})
+        return render_template('result.html', similar_image_path=similar_image_path)
 
     except Exception as e:
         # Error handling: Log any errors that occur
