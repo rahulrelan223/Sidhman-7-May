@@ -1,17 +1,13 @@
-from flask import Flask, request, jsonify
 import numpy as np
 import os
+from flask import Flask, request, jsonify
 import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import GlobalAveragePooling2D
 from scipy.spatial.distance import cosine
-import logging
 
 app = Flask(__name__)
-
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO)
 
 # Function to create the feature extractor model
 def create_feature_extractor(input_shape=(224, 224, 3)):
@@ -23,17 +19,37 @@ def create_feature_extractor(input_shape=(224, 224, 3)):
 # Load the feature extractor model
 feature_extractor = create_feature_extractor()
 
+# Define the paths for the dataset
+dataset_path = 'Test'  # Assuming the dataset folder is in the root directory of your GitHub repo
+class_names = ['gear', 'pin']  # Update with your actual class names
+
 # Load the features and image names from the dataset
-dataset_path = r'Test'
-loaded_data = np.load(r'extracted_features.npz')
-dataset_features = loaded_data['features']
-dataset_image_names = loaded_data['image_names']
+features = []
+image_names = []
 
-# Log dataset information
-logging.info("Dataset loaded successfully.")
-logging.info("Number of images in dataset: %d", len(dataset_image_names))
+for class_name in class_names:
+    class_path = os.path.join(dataset_path, class_name)
+    image_files = os.listdir(class_path)
+    for image_file in image_files:
+        image_path = os.path.join(class_path, image_file)
+        # Load and preprocess the image
+        img = tf.keras.preprocessing.image.load_img(image_path, target_size=(224, 224))
+        img_array = tf.keras.preprocessing.image.img_to_array(img)
+        img_array = tf.expand_dims(img_array, 0)  # Add batch dimension
+        img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+        # Extract features from the image
+        image_features = feature_extractor.predict(img_array)
+        # Ensure image_features is a 1-D array
+        image_features = np.squeeze(image_features)
+        # Append the features and image name to the lists
+        features.append(image_features)
+        image_names.append(image_file)
 
-@app.route('/', methods=['POST', 'OPTIONS'])
+# Convert features and image names to numpy arrays
+dataset_features = np.array(features)
+dataset_image_names = np.array(image_names)
+
+@app.route('/', methods=['POST'])
 def upload_image():
     try:
         # Check if the request contains an image file
@@ -79,7 +95,7 @@ def upload_image():
 
     except Exception as e:
         # Error handling: Log any errors that occur
-        logging.error("An error occurred: %s", e)
+        print("An error occurred:", e)
         return jsonify({'error': 'An error occurred. Please try again later.'})
 
 if __name__ == '__main__':
