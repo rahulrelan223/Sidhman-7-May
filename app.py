@@ -14,7 +14,7 @@ app = Flask(__name__)
 dataset_path = 'Test'  # Assuming the dataset folder is in the root directory of your GitHub repo
 class_names = ['gear', 'pin']  # Update with your actual class names
 
-@app.route('/upload_image', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def upload_image():
     if request.method == 'GET':
         return render_template('index.html')
