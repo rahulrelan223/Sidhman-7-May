@@ -49,7 +49,7 @@ for class_name in class_names:
 dataset_features = np.array(features)
 dataset_image_names = np.array(image_names)
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
 def upload_image():
     try:
         # Check if the request contains an image file
