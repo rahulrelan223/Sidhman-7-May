@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, jsonify
 import numpy as np
 import os
 import tensorflow as tf
@@ -25,64 +25,54 @@ loaded_data = np.load(r'extracted_features.npz')
 dataset_features = loaded_data['features']
 dataset_image_names = loaded_data['image_names']
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        try:
-            # Check if the post request has the file part
-            if 'file' not in request.files:
-                return "No file part"
-        
-            # Get uploaded image file
-            uploaded_file = request.files['file']
-        
-            # If the user does not select a file, the browser submits an empty file without a filename
-            if uploaded_file.filename == '':
-                return "No selected file"
-        
-            # Save the uploaded file to a temporary location
-            uploaded_file_path = 'uploaded_image.jpg'
-            uploaded_file.save(uploaded_file_path)
-        
-            # Load and preprocess the uploaded image
-            img = tf.keras.preprocessing.image.load_img(uploaded_file_path, target_size=(224, 224))
-            img_array = tf.keras.preprocessing.image.img_to_array(img)
-            img_array = tf.expand_dims(img_array, 0)  # Add batch dimension
-            img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
-        
-            # Extract features from the uploaded image
-            uploaded_image_features = feature_extractor.predict(img_array)
-        
-            # Ensure uploaded_image_features is a 1-D array
-            uploaded_image_features = np.squeeze(uploaded_image_features)
-        
-            # Ensure dataset_features is a 2-D array
-            dataset_features_squeezed = np.squeeze(dataset_features)
-        
-            # Find similar images by computing cosine similarity
-            similarities = [1 - cosine(uploaded_image_features, feat) for feat in dataset_features_squeezed]
-            max_similarity_index = np.argmax(similarities)
-            similar_image_name = dataset_image_names[max_similarity_index]
-            
-            # Pass the path of the similar image to the template
-            similar_image_path = os.path.join(dataset_path, similar_image_name)
-            
-            # Print the path of the similar image along with its name
-            print("Uploaded Image:", uploaded_file.filename)
-            print("Similar Image Name:", similar_image_name)
-            print("Similar Image Path:", similar_image_path)
-            
-            # Redirect to the result page with the similar image data
-            return render_template('result.html', similar_image_name=similar_image_name, similar_image_path=similar_image_path)
-            
-        except Exception as e:
-            # Error handling: Log any errors that occur
-            print("An error occurred:", e)
-            return "An error occurred. Please try again later."
+@app.route('/', methods=['POST'])
+def upload_image():
+    try:
+        # Check if the request contains an image file
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'})
 
-    # If it's a GET request or the form is not submitted, render the index.html template
-    return render_template('index.html')
+        # Get uploaded image file
+        uploaded_file = request.files['file']
 
+        # If no file is selected, return an error
+        if uploaded_file.filename == '':
+            return jsonify({'error': 'No selected file'})
+
+        # Save the uploaded file to a temporary location
+        uploaded_file_path = 'uploaded_image.jpg'
+        uploaded_file.save(uploaded_file_path)
+
+        # Load and preprocess the uploaded image
+        img = tf.keras.preprocessing.image.load_img(uploaded_file_path, target_size=(224, 224))
+        img_array = tf.keras.preprocessing.image.img_to_array(img)
+        img_array = tf.expand_dims(img_array, 0)  # Add batch dimension
+        img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+
+        # Extract features from the uploaded image
+        uploaded_image_features = feature_extractor.predict(img_array)
+
+        # Ensure uploaded_image_features is a 1-D array
+        uploaded_image_features = np.squeeze(uploaded_image_features)
+
+        # Ensure dataset_features is a 2-D array
+        dataset_features_squeezed = np.squeeze(dataset_features)
+
+        # Find similar images by computing cosine similarity
+        similarities = [1 - cosine(uploaded_image_features, feat) for feat in dataset_features_squeezed]
+        max_similarity_index = np.argmax(similarities)
+        similar_image_name = dataset_image_names[max_similarity_index]
+
+        # Pass the path of the similar image as a response
+        similar_image_path = os.path.join(dataset_path, similar_image_name)
+
+        # Return the similar image path in the response
+        return jsonify({'similar_image_path': similar_image_path})
+
+    except Exception as e:
+        # Error handling: Log any errors that occur
+        print("An error occurred:", e)
+        return jsonify({'error': 'An error occurred. Please try again later.'})
 
 if __name__ == '__main__':
     app.run(debug=True)
