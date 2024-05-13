@@ -6,8 +6,12 @@ from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import GlobalAveragePooling2D
 from scipy.spatial.distance import cosine
+import logging
 
 app = Flask(__name__)
+
+# Set up logging configuration
+logging.basicConfig(level=logging.INFO)
 
 # Function to create the feature extractor model
 def create_feature_extractor(input_shape=(224, 224, 3)):
@@ -24,6 +28,10 @@ dataset_path = r'Test'
 loaded_data = np.load(r'extracted_features.npz')
 dataset_features = loaded_data['features']
 dataset_image_names = loaded_data['image_names']
+
+# Log dataset information
+logging.info("Dataset loaded successfully.")
+logging.info("Number of images in dataset: %d", len(dataset_image_names))
 
 @app.route('/', methods=['POST'])
 def upload_image():
@@ -71,7 +79,7 @@ def upload_image():
 
     except Exception as e:
         # Error handling: Log any errors that occur
-        print("An error occurred:", e)
+        logging.error("An error occurred: %s", e)
         return jsonify({'error': 'An error occurred. Please try again later.'})
 
 if __name__ == '__main__':
